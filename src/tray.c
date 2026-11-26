@@ -416,9 +416,10 @@ static GVariant *on_sni_prop(GDBusConnection *c, const char *sender, const char 
   if (g_strcmp0(prop, "Id") == 0) return g_variant_new_string("uquick");
   if (g_strcmp0(prop, "Title") == 0) return g_variant_new_string("UQuick");
   if (g_strcmp0(prop, "Status") == 0) return g_variant_new_string("Active");
-  /* 故意留空：ubuntu-appindicators 里 name 优先于 pixmap，而 snap 的图标不在
-   * 宿主机图标主题里，给名字只会查到 "image-missing"。留空才会回落到 IconPixmap。 */
-  if (g_strcmp0(prop, "IconName") == 0) return g_variant_new_string("");
+  /* 图标名：必须能在宿主机的图标主题里查到 —— install-hotkey.sh 会把
+   * io.github.suveng.uquick.svg 装到 ~/.local/share/icons/hicolor/scalable/apps/。
+   * ubuntu-appindicators 是 name 优先、pixmap 兜底，名字查不到就显示成缺失占位符。 */
+  if (g_strcmp0(prop, "IconName") == 0) return g_variant_new_string("io.github.suveng.uquick");
   if (g_strcmp0(prop, "IconPixmap") == 0) return build_pixmaps();
   if (g_strcmp0(prop, "Menu") == 0) return g_variant_new_object_path(MENU_PATH);
   if (g_strcmp0(prop, "ItemIsMenu") == 0) return g_variant_new_boolean(TRUE);

@@ -127,6 +127,27 @@ run gsettings set "$MEDIA.custom-keybinding:$KEY_PATH" name 'UQuick 启动器'
 run gsettings set "$MEDIA.custom-keybinding:$KEY_PATH" command "$CMD"
 run gsettings set "$MEDIA.custom-keybinding:$KEY_PATH" binding "$BINDING"
 
+# 托盘图标：shell 的图标主题要能按名字查到（classic snap 的图标不在宿主主题里）
+ICON_REL="usr/share/icons/hicolor/scalable/apps/io.github.suveng.uquick.svg"
+ICON_SRC=""
+for c in "$(dirname "$0")/../data/icons/hicolor/scalable/apps/io.github.suveng.uquick.svg" \
+         "/snap/uquick/current/$ICON_REL" "/usr/$ICON_REL"; do
+  [ -f "$c" ] && { ICON_SRC="$c"; break; }
+done
+ICON_DST="$HOME/.local/share/icons/hicolor/scalable/apps/io.github.suveng.uquick.svg"
+if [ -n "$ICON_SRC" ]; then
+  say "托盘图标：$ICON_DST"
+  if [ "$DRY" = 1 ]; then
+    say "[dry-run] 复制图标并更新缓存"
+  else
+    mkdir -p "$(dirname "$ICON_DST")"
+    cp -f "$ICON_SRC" "$ICON_DST"
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+  fi
+else
+  say "提示：没找到图标源文件，托盘可能显示缺失图标（可手动 cp 到 $ICON_DST）"
+fi
+
 # 常驻进程自启：deb 安装自带系统级自启；snap 版写用户级
 if [ -f "$AUTOSTART_SYS" ]; then
   say "自启：已由 $AUTOSTART_SYS 提供"
