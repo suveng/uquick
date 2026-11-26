@@ -78,6 +78,20 @@ void uq_copy_text(const char *text) {
 
 void uq_launch(UqItem *it, GtkWindow *win) {
   if (!it) return;
+
+  /* 开关类动作：不隐藏面板，就地刷新状态，让用户看到结果 */
+  if (it->key && strcmp(it->key, "act:autostart") == 0) {
+    GError *err = NULL;
+    if (!uq_autostart_set(!uq_autostart_enabled(), &err)) {
+      g_printerr("uquick: 切换开机自启失败: %s\n", err ? err->message : "未知");
+      g_clear_error(&err);
+    }
+    uq_index_load();       /* 索引重建会让 it 失效，之后不能再碰 */
+    uq_ui_refresh();
+    uq_tray_update();
+    return;
+  }
+
   if (it->key) uq_frec_bump(it->key);
 
   switch (it->kind) {

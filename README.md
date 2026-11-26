@@ -4,7 +4,7 @@
 没有 Electron、没有 Python、没有 Node，也不打包运行时。
 
 ```
-名称        UQuick 0.1.2
+名称        UQuick 0.1.3
 语言        C（GTK4 / GLib / GIO）
 二进制      150 KB（含 21k 汉字拼音表；snap 包 60 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
@@ -24,6 +24,8 @@
 | `/home/…` / `~/Downloads` | 在文件管理器中打开 |
 | `>ls -la` | 交给 `/bin/sh` 执行 |
 | `锁屏` `挂起` `注销` `重启` `关机` `Wi-Fi` `蓝牙` `显示` `声音` `电源` | 内置系统动作 |
+| `开机自启` / `kjzq` | 开关开机自启（状态显示在副标题，回车即切换） |
+| 顶栏托盘图标 | 左键菜单：打开 UQuick / 设置… / 开机自启（勾选）/ 退出 |
 
 排序 = 匹配分 + 使用热度（frecency，按次数与衰减时间计算），越用越顺手。
 
@@ -124,7 +126,10 @@ uquick --daemon        # 前台常驻
 uquick --quit
 uquick --bench         # 索引 + 搜索基准
 uquick --bench-show    # 热键到首帧延迟基准（需要显示环境）
-uquick --stats         # 索引项数、扫描耗时、socket、守护进程状态
+uquick --settings      # 打开设置窗口（开机自启/索引/热键/自定义命令/退出）
+uquick --autostart on|off|status   # 开机自启开关，打印 on/off（可脚本化）
+uquick --icon-png FILE [SIZE]      # 导出托盘图标 PNG（调试/商店素材）
+uquick --stats         # 索引项数、扫描耗时、socket、守护进程状态、开机自启
 uquick --selftest      # 计算器 20 例 + 打分/索引/搜索回归自检（无外部依赖）
 uquick --explain TEXT  # 打印带分数的命中列表（调排序用）
 ```
@@ -137,6 +142,19 @@ uquick --explain TEXT  # 打印带分数的命中列表（调排序用）
 重载索引	uquick --reload
 开代理	~/.local/bin/proxy-on	proxy vpn
 ```
+
+## 开机自启
+
+三种方式等价，都是写 `~/.config/autostart/uquick-daemon.desktop`：
+
+```bash
+uquick --autostart on|status|off     # 命令行
+uquick --settings                    # 设置窗口里的开关
+# 或点顶栏图标 → 「开机自启」勾选项
+```
+
+如果系统级 `/etc/xdg/autostart` 里也有同名文件（deb 安装自带），关掉时会写一个
+`Hidden=true` 的用户级同名文件来屏蔽它（XDG 规范做法，不需要 root）。
 
 ## 数据与路径
 
@@ -182,6 +200,11 @@ $ uquick --selftest
   `tools/gen-pinyin.py` 用 ICU `uconv -x Han-Latin` 离线生成：19k+ 字 1 个 `uint16` 索引，
   O(1) 查表、无运行时依赖；拼音拼进匹配串尾部，只参与连续匹配（子序列仍限名称段，避免噪音）
 - `src/calc.c` —— 递归下降求值器（+ - * / % ^ 括号、一元负号、sqrt/abs/log/ln/sin 等、pi/e/tau）
+- `src/tray.c` —— 顶栏托盘：手写 **StatusNotifierItem + com.canonical.dbusmenu**（不用
+  libayatana-appindicator，那是 GTK3 库，和 GTK4 进程不能混用）。图标用 **IconPixmap**
+  （cairo 现画 ARGB32）而不是 IconName —— classic snap 的图标不在宿主机图标主题里，按名字查不到。
+- `src/settings.c` —— 设置窗口（纯 GTK4 代码构建，无 libadwaita）
+- `src/autostart.c` —— 开机自启开关（XDG autostart；有系统级条目时用同名 `Hidden=true` 屏蔽）
 - `src/launch.c` —— GDesktopAppInfo 启动（含 Terminal=true、启动通知上下文）+ 失败回落、剪贴板、URI/路径
 - `src/ui.c` —— 单窗口、10 个可复用行控件、图标缓存、CAPTURE 阶段键盘处理、帧时钟延迟测量
 

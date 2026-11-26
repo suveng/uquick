@@ -11,7 +11,7 @@
 #include <gtk/gtk.h>
 
 #define UQ_APP_ID    "io.github.suveng.uquick"
-#define UQ_VERSION   "0.1.2"
+#define UQ_VERSION   "0.1.3"
 #define UQ_MAX_ROWS  10
 #define UQ_MAX_TOKENS 6
 
@@ -79,6 +79,22 @@ void    uq_launch(UqItem *it, GtkWindow *win);
 void    uq_copy_text(const char *text);
 void    uq_load_commands(void);          /* 读 commands.tsv 并并入索引 */
 
+/* ---- autostart.c ---- */
+gboolean    uq_autostart_enabled(void);
+gboolean    uq_autostart_set(gboolean on, GError **err);
+gboolean    uq_autostart_system_entry(void);
+const char *uq_autostart_exec(void);
+const char *uq_autostart_user_path(void);
+
+/* ---- settings.c / tray.c ---- */
+void        uq_settings_show(void);
+gboolean    uq_settings_is_open(void);
+gboolean    uq_tray_init(GError **err);   /* 顶栏托盘（SNI + dbusmenu） */
+gboolean    uq_tray_active(void);
+void        uq_tray_update(void);         /* 自启状态变化后刷新菜单勾选 */
+gboolean    uq_tray_write_icon_png(const char *path, int size);
+void        uq_quit(void);                /* 存热度并退出守护进程 */
+
 /* ---- ui.c ---- */
 void    uq_ui_init(void);
 void    uq_ui_show(void);
@@ -88,6 +104,7 @@ gboolean uq_ui_is_visible(void);
 void    uq_ui_run(void);
 void    uq_ui_set_pending(guint64 unix_us);   /* 延迟测量用 */
 void    uq_ui_set_query(const char *text);     /* 预置查询（脚本/截图） */
+void    uq_ui_refresh(void);                   /* 索引重建后按当前查询重渲染 */
 void    uq_ui_warmup(void);                    /* 启动即预热首帧，避免首次热键慢 190 ms */
 void    uq_ui_bench(void);                    /* 打开 -> 首帧，打印耗时 */
 

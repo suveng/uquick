@@ -108,6 +108,11 @@ static int client_command(const char *cmd, gboolean autostart) {
 
 /* ---------- 守护进程 ---------- */
 
+void uq_quit(void) {
+  uq_frec_flush();
+  exit(0);
+}
+
 static int      srv_fd = -1;
 static gboolean reloaded;
 
@@ -142,6 +147,8 @@ static gboolean on_socket(gint fd, GIOCondition cond, gpointer data) {
       uq_ui_hide();
     } else if (strcmp(cmd, "ping") == 0) {
       /* pong */
+    } else if (strcmp(cmd, "settings") == 0) {
+      uq_settings_show();
     } else if (strcmp(cmd, "query") == 0) {
       uq_ui_show();
       uq_ui_set_query(arg ? arg : "");
@@ -224,6 +231,16 @@ static int run_daemon(void) {
   gtk_init();
   uq_ui_init();
   uq_ui_warmup();
+
+  GError *terr = NULL;
+  if (g_getenv("UQUICK_NO_TRAY")) {
+    /* 离屏截图/测试时不抢托盘，避免出现第二个图标 */
+  } else if (!uq_tray_init(&terr)) {
+    if (g_getenv("UQUICK_TRACE"))
+      g_printerr("uquick: 托盘初始化失败（继续运行，无顶栏图标）: %s\n",
+                 terr ? terr->message : "未知");
+    g_clear_error(&terr);
+  }
 
   signal(SIGTERM, on_signal);
   signal(SIGINT, on_signal);
@@ -387,6 +404,8 @@ static int run_stats(void) {
     if (ipc_query("status", st, sizeof(st)) == 0)
       printf("面板        : %s\n", strcmp(st, "visible") == 0 ? "显示中" : "隐藏");
   }
+  printf("开机自启    : %s（%s）\n", uq_autostart_enabled() ? "开" : "关",
+         uq_autostart_user_path());
   printf("配置目录    : %s\n", g_get_user_config_dir());
   printf("状态目录    : %s\n", g_get_user_state_dir());
   printf("数据目录    : %s\n", g_get_user_data_dir());
@@ -406,6 +425,8 @@ static void usage(void) {
   printf("  uquick --quit          退出守护进程\n");
   printf("  uquick --bench         索引 + 搜索基准\n");
   printf("  uquick --bench-show    热键到首帧延迟基准（需要显示环境）\n");
+  printf("  uquick --settings      打开设置窗口\n");
+  printf("  uquick --autostart on|off|status   开机自启开关（打印 on/off）\n");
   printf("  uquick --stats         运行状态\n");
   printf("  uquick --selftest      计算器/打分/索引回归自检\n");
 }
@@ -437,6 +458,25 @@ int main(int argc, char **argv) {
     if (!strcmp(a, "--explain") && argc > 2)         return run_explain(argv[2]);
     if (!strcmp(a, "--selftest"))                    return run_selftest();
     if (!strcmp(a, "--stats"))                       return run_stats();
+    if (!strcmp(a, "--autostart")) {
+      const char *mode = argc > 2 ? argv[2] : "status";
+      if (!strcmp(mode, "on") || !strcmp(mode, "off")) {
+        GError *err = NULL;
+        if (!uq_autostart_set(!strcmp(mode, "on"), &err)) {
+          g_printerr("uquick: %s\n", err ? err->message : "切换失败");
+          g_clear_error(&err);
+          return 1;
+        }
+      } else if (strcmp(mode, "status") != 0) {
+        g_printerr("uquick: --autostart 只接受 on|off|status\n");
+        return 2;
+      }
+      printf("%s\n", uq_autostart_enabled() ? "on" : "off");
+      return 0;
+    }
+    if (!strcmp(a, "--settings")) { int rc = client_raw("settings", TRUE); return rc; }
+    if (!strcmp(a, "--icon-png") && argc > 2)
+      return uq_tray_write_icon_png(argv[2], argc > 3 ? atoi(argv[3]) : 256) ? 0 : 1;
     if (!strcmp(a, "--version") || !strcmp(a, "-v")) { printf("uquick %s\n", UQ_VERSION); return 0; }
     if (!strcmp(a, "--help") || !strcmp(a, "-h"))    { usage(); return 0; }
     if (!strcmp(a, "--bench-show")) {

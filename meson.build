@@ -1,5 +1,5 @@
 project('uquick', 'c',
-  version: '0.1.2',
+  version: '0.1.3',
   license: 'GPL-3.0-or-later',
   meson_version: '>= 0.62',
   default_options: [
@@ -13,6 +13,7 @@ project('uquick', 'c',
 cc = meson.get_compiler('c')
 gtk = dependency('gtk4', version: '>= 4.12')
 gio_unix = dependency('gio-unix-2.0', version: '>= 2.72')
+cairo = dependency('cairo')
 math = cc.find_library('m', required: false)
 
 uquick_sources = files(
@@ -21,11 +22,14 @@ uquick_sources = files(
   'src/calc.c',
   'src/pinyin.c',
   'src/launch.c',
+  'src/autostart.c',
+  'src/settings.c',
+  'src/tray.c',
   'src/ui.c',
 )
 
 executable('uquick', uquick_sources,
-  dependencies: [gtk, gio_unix, math],
+  dependencies: [gtk, gio_unix, cairo, math],
   install: true,
   c_args: ['-ffunction-sections', '-fdata-sections', '-Wno-unused-parameter'],
   link_args: ['-Wl,--gc-sections', '-Wl,-O1', '-Wl,--as-needed'])

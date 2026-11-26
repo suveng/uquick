@@ -430,6 +430,8 @@ void uq_ui_show(void) {
   }
 }
 
+void uq_ui_refresh(void) { render(); }
+
 void uq_ui_set_query(const char *text) {
   gtk_editable_set_text(GTK_EDITABLE(entry), text ? text : "");
   gtk_editable_set_position(GTK_EDITABLE(entry), -1);

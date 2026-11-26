@@ -34,6 +34,7 @@ setsid Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp >/dev/null 2>&1 &
 sleep 1.2
 
 export DISPLAY=:99 GDK_BACKEND=x11 GSK_RENDERER=cairo GDK_SCALE=2   # 2x 渲染更清晰
+export UQUICK_NO_TRAY=1   # 离屏截图别去抢真实托盘的注册
 setsid "$BIN" --daemon >/dev/null 2>&1 &
 sleep 1.5
 
@@ -70,4 +71,21 @@ shot() { # $1=查询 $2=输出文件
 shot "web"              "$OUT/screenshot-1.png"
 shot "1+2*3+sqrt(16)"   "$OUT/screenshot-2.png"
 shot "term"             "$OUT/screenshot-3.png"
+
+# 设置窗口
+"$BIN" --settings
+sleep 1
+command -v xdotool >/dev/null && xdotool mousemove 5 5
+sleep 0.3
+import -window root "$TMP/raw4.png"
+convert "$TMP/raw4.png" -trim +repage "$TMP/win4.png"
+w=$(identify -format %w "$TMP/win4.png"); h=$(identify -format %h "$TMP/win4.png")
+convert -size "${w}x${h}" xc:black -fill white \
+  -draw "roundrectangle 0,0,$((w-1)),$((h-1)),24,24" "$TMP/mask4.png"
+convert "$TMP/win4.png" "$TMP/mask4.png" -alpha off -compose CopyOpacity -composite "$TMP/round4.png"
+convert "$TMP/round4.png" \( +clone -background black -shadow 55x18+0+12 \) +swap \
+  -background none -layers merge +repage "$TMP/shadow4.png"
+convert "$TMP/bg.png" "$TMP/shadow4.png" -gravity center -geometry +0+40 \
+  -composite -strip -quality 92 "$OUT/screenshot-4.png"
+echo "生成 $OUT/screenshot-4.png"
 ls -lh "$OUT"/screenshot-*.png

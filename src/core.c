@@ -349,6 +349,24 @@ static void add_actions(void) {
     it.boost = f ? f->boost : 0.0;
     add_item(it);
   }
+
+  /* 开机自启开关（名称固定、状态放副标题，便于稳定检索） */
+  {
+    gboolean on = uq_autostart_enabled();
+    GString *hay = g_string_new("开机自启 autostart boot startup login ");
+    for (char *p = hay->str; *p; p++) *p = fold_c(*p);
+    append_pinyin(hay, "开机自启");
+    UqItem it = {0};
+    it.kind = UQ_KIND_ACTION;
+    it.name = g_strdup("开机自启");
+    it.sub = g_strdup(on ? "已开启 · 回车关闭" : "已关闭 · 回车开启");
+    it.icon = g_strdup("system-run");
+    it.arg = g_strdup("act:autostart");
+    it.key = g_strdup("act:autostart");
+    it.match = g_string_free(hay, FALSE);
+    it.name_len = (guint16)strlen(it.match);
+    add_item(it);
+  }
 }
 
 /* 用户自定义命令：~/.config/uquick/commands.tsv
