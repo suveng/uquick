@@ -11,7 +11,7 @@
 #include <gtk/gtk.h>
 
 #define UQ_APP_ID    "io.github.suveng.uquick"
-#define UQ_VERSION   "0.1.1"
+#define UQ_VERSION   "0.1.2"
 #define UQ_MAX_ROWS  10
 #define UQ_MAX_TOKENS 6
 
@@ -65,6 +65,11 @@ int     uq_search(const char *query, UqResult *out, int max,
 void    uq_frec_load(void);
 void    uq_frec_bump(const char *key);   /* 主线程，置脏 */
 void    uq_frec_flush(void);             /* 写盘（去抖后调用） */
+
+/* ---- pinyin.c ---- */
+/* 把 UTF-8 文本转成（首字母串, 全拼串）；返回是否含汉字。
+ * 非汉字按小写原样并入，分隔符归一成空格。 */
+gboolean uq_pinyin(const char *utf8, GString *initials, GString *full);
 
 /* ---- calc.c ---- */
 gboolean uq_calc_eval(const char *expr, double *out);

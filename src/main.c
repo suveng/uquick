@@ -309,6 +309,28 @@ static int run_selftest(void) {
     }
   }
 
+  /* 拼音：首字母 / 全拼 */
+  {
+    GString *ini = g_string_new(NULL), *full = g_string_new(NULL);
+    gboolean has = uq_pinyin("网易云音乐", ini, full);
+    if (!has || strncmp(ini->str, "wyy", 3) != 0 || strncmp(full->str, "wangyiyun", 9) != 0) {
+      g_printerr("FAIL pinyin 网易云音乐 -> 首字母\"%s\" 全拼\"%s\"\n", ini->str, full->str);
+      fail++;
+    }
+    g_string_truncate(ini, 0); g_string_truncate(full, 0);
+    if (uq_pinyin("firefox", ini, full) || strcmp(ini->str, "firefox") != 0) {
+      g_printerr("FAIL pinyin firefox -> 不该标为含汉字（\"%s\"）\n", ini->str);
+      fail++;
+    }
+    g_string_truncate(ini, 0); g_string_truncate(full, 0);
+    uq_pinyin("Shot 截图", ini, full);
+    if (strcmp(ini->str, "shot jt") != 0) {
+      g_printerr("FAIL pinyin \"Shot 截图\" -> 首字母\"%s\"（期望 \"shot jt\"）\n", ini->str);
+      fail++;
+    }
+    g_string_free(ini, TRUE); g_string_free(full, TRUE);
+  }
+
   /* 打分：前缀 > 词边界 > 子序列；且子序列不能靠关键词段"凑"出来 */
   double a = uq_fuzzy("firefox web", "fire");
   double b = uq_fuzzy("solidfire", "fire");
@@ -327,6 +349,16 @@ static int run_selftest(void) {
   UqResult r[4];
   int n = uq_search("set", r, 4, NULL, 0);
   if (n <= 0) { g_printerr("FAIL search: \"set\" 无命中\n"); fail++; }
+  /* 拼音搜索：内置动作「设置」-> sz，「锁屏」-> sp */
+  gboolean hit_sz = FALSE, hit_sp = FALSE;
+  n = uq_search("sz", r, 4, NULL, 0);
+  for (int i = 0; i < n; i++) if (strcmp(r[i].item->name, "设置") == 0) hit_sz = TRUE;
+  n = uq_search("sp", r, 4, NULL, 0);
+  for (int i = 0; i < n; i++) if (strcmp(r[i].item->name, "锁屏") == 0) hit_sp = TRUE;
+  if (!hit_sz || !hit_sp) {
+    g_printerr("FAIL search: 拼音检索失效（sz->设置 %d, sp->锁屏 %d）\n", hit_sz, hit_sp);
+    fail++;
+  }
   if (uq_search("zzzzqqqq", r, 4, NULL, 0) != 0) {
     g_printerr("FAIL search: 乱串不该有命中\n"); fail++;
   }

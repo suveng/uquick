@@ -1,5 +1,5 @@
 project('uquick', 'c',
-  version: '0.1.1',
+  version: '0.1.2',
   license: 'GPL-3.0-or-later',
   meson_version: '>= 0.62',
   default_options: [
@@ -19,6 +19,7 @@ uquick_sources = files(
   'src/main.c',
   'src/core.c',
   'src/calc.c',
+  'src/pinyin.c',
   'src/launch.c',
   'src/ui.c',
 )

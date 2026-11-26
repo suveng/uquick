@@ -4,11 +4,11 @@
 没有 Electron、没有 Python、没有 Node，也不打包运行时。
 
 ```
-名称        UQuick 0.1.1
+名称        UQuick 0.1.2
 语言        C（GTK4 / GLib / GIO）
-二进制      84 KB（strip 前；snap 包 32 KB）
+二进制      150 KB（含 21k 汉字拼音表；snap 包 60 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
-搜索        4.2 µs / 次（约 24 万次/秒）
+搜索        4.6 µs / 次（约 22 万次/秒，含拼音匹配）
 热键          <Super>space（本机；项目默认 <Super>slash，见下）
 热键→首帧    稳定 9~11 ms（约半帧），守护进程启动后首次 29 ms
 ```
@@ -18,6 +18,7 @@
 | 输入 | 结果 |
 |---|---|
 | `chr` / `web` / `设置` | 模糊搜索并启动应用（名称、GenericName、Keywords、desktop id，中文可用） |
+| `wyy` / `wangyiyun` | **拼音搜索**：首字母或全拼都能搜到「网易云音乐」（`sz`→设置、`sp`→锁屏、`dby`→豆包语音输入） |
 | `1+2*3+sqrt(16)` / `15%3` / `=` 前缀 | 内联算式，回车把结果复制到剪贴板 |
 | `https://…` / `www.…` | 用默认浏览器打开 |
 | `/home/…` / `~/Downloads` | 在文件管理器中打开 |
@@ -150,8 +151,8 @@ uquick --explain TEXT  # 打印带分数的命中列表（调排序用）
 
 ```
 $ uquick --bench
-索引：98 项，扫描耗时 2.88 ms
-搜索：20000 次 / 83.5 ms，平均 4.18 µs/次（24.0 万次/秒），命中均值 8.4
+索引：99 项，扫描耗时 3.02 ms
+搜索：20000 次 / 91.3 ms，平均 4.56 µs/次（21.9 万次/秒），命中均值 5.6
 
 $ uquick --bench-show      # 同一进程内 20 次 show/hide 往返
 请求 -> surface 提交 : avg=6.89 ms  min=0.05  max=136.62
@@ -177,6 +178,9 @@ $ uquick --selftest
 - `src/main.c` —— 模式分派、unix socket 服务端（`g_unix_fd_add`）、客户端（纯 POSIX，不初始化 GTK）
 - `src/core.c` —— XDG applications 扫描（GKeyFile 解析、OnlyShowIn/NoDisplay/TryExec 处理）、
   模糊打分（连续子串 > 词边界 > 子序列，子序列只在名称段）、frecency
+- `src/pinyin.c` + `src/pinyin_table.h` —— 汉字→拼音查表（首字母 + 全拼），表由
+  `tools/gen-pinyin.py` 用 ICU `uconv -x Han-Latin` 离线生成：19k+ 字 1 个 `uint16` 索引，
+  O(1) 查表、无运行时依赖；拼音拼进匹配串尾部，只参与连续匹配（子序列仍限名称段，避免噪音）
 - `src/calc.c` —— 递归下降求值器（+ - * / % ^ 括号、一元负号、sqrt/abs/log/ln/sin 等、pi/e/tau）
 - `src/launch.c` —— GDesktopAppInfo 启动（含 Terminal=true、启动通知上下文）+ 失败回落、剪贴板、URI/路径
 - `src/ui.c` —— 单窗口、10 个可复用行控件、图标缓存、CAPTURE 阶段键盘处理、帧时钟延迟测量
@@ -217,3 +221,6 @@ snapcraft upload --release=edge uquick_0.1.1_amd64.snap
 - 只测过 GNOME 50 / Wayland / Ubuntu 26.04；classic 快照用的是宿主机的 GTK4，要求宿主机 GTK ≥ 4.12。
 - 没有插件市场，插件能力由 `commands.tsv`（任意 shell 命令）+ 前缀语法承担。
 - 剪贴板历史未实现（Wayland 下需要常驻读取或 portal，留待后续）。
+- 拼音是**逐字取音**，多音字用 ICU 的单字默认读音：`音乐` 的全拼会变成 `yinle`（首字母不受影响），
+  需要精确多音字得换成带词库的方案。
+- 拼音表只覆盖 CJK 基本区（U+4E00–U+9FFF）+ `〇`，生僻扩展区汉字不参与拼音匹配。

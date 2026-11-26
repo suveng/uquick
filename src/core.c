@@ -186,6 +186,20 @@ static gboolean split_contains(GKeyFile *kf, const char *key, const char *want) 
   return found;
 }
 
+/* 把名称的拼音（首字母 + 全拼）追加到匹配串尾部：
+ * 连续匹配能命中拼音段，子序列仍被 name_len 限制在名称段内，避免噪音。 */
+static void append_pinyin(GString *hay, const char *text) {
+  GString *ini = g_string_sized_new(16), *full = g_string_sized_new(64);
+  if (uq_pinyin(text, ini, full) && ini->len > 0) {
+    g_string_append_c(hay, ' ');
+    g_string_append(hay, ini->str);
+    g_string_append_c(hay, ' ');
+    g_string_append(hay, full->str);
+  }
+  g_string_free(ini, TRUE);
+  g_string_free(full, TRUE);
+}
+
 static void add_item(UqItem it) {
   if (idx.len == idx.cap) {
     idx.cap = idx.cap ? idx.cap * 2 : 512;
@@ -251,6 +265,7 @@ static void parse_desktop(const char *path) {
     g_string_append_c(hay, ' ');
     for (const char *p = id; *p; p++) g_string_append_c(hay, fold_c(*p));
   }
+  append_pinyin(hay, name);
 
   UqItem it = {0};
   it.kind = UQ_KIND_APP;
@@ -324,8 +339,11 @@ static void add_actions(void) {
     it.icon = g_strdup(actions[i].icon);
     it.arg = g_strdup(actions[i].cmd);
     it.key = g_strdup(actions[i].key);
-    it.match = g_strdup_printf("%s %s", actions[i].key + 4, actions[i].name);
-    for (char *p = it.match; *p; p++) *p = fold_c(*p);
+    GString *hay = g_string_new(NULL);
+    g_string_append_printf(hay, "%s %s", actions[i].key + 4, actions[i].name);
+    for (char *p = hay->str; *p; p++) *p = fold_c(*p);
+    append_pinyin(hay, actions[i].name);
+    it.match = g_string_free(hay, FALSE);
     it.name_len = (guint16)strlen(it.match);
     const Frec *f = frec_get(it.key);
     it.boost = f ? f->boost : 0.0;
@@ -361,8 +379,11 @@ void uq_load_commands(void) {
       it.arg = g_strdup(cmd);
       it.icon = g_strdup("utilities-terminal-symbolic");
       it.key = g_strdup_printf("cmd:%s", name);
-      it.match = g_strdup_printf("%s %s %s", name, cmd, extra ? extra : "");
-      for (char *p = it.match; *p; p++) *p = fold_c(*p);
+      GString *hay = g_string_new(NULL);
+      g_string_append_printf(hay, "%s %s %s", name, cmd, extra ? extra : "");
+      for (char *p = hay->str; *p; p++) *p = fold_c(*p);
+      append_pinyin(hay, name);
+      it.match = g_string_free(hay, FALSE);
       it.name_len = (guint16)strlen(name);
       const Frec *f = frec_get(it.key);
       it.boost = f ? f->boost : 0.0;

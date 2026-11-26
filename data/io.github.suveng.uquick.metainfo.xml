@@ -47,6 +47,12 @@
   </keywords>
 
   <releases>
+    <release version="0.1.2" date="2026-11-26">
+      <description>
+        <p>支持拼音查询：输入首字母即可搜到中文应用，例如 wyy → 网易云音乐、sz → 设置、sp → 锁屏。</p>
+        <p>拼音表由 ICU 的 Han-Latin 转写离线生成并编进二进制，查表 O(1)，不引入运行时依赖。</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-11-26">
       <description>
         <p>启动时预热一帧，开机后第一次按热键从 194 ms 降到 29 ms（稳定时 9~11 ms）。</p>
