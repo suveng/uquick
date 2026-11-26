@@ -416,7 +416,9 @@ static GVariant *on_sni_prop(GDBusConnection *c, const char *sender, const char 
   if (g_strcmp0(prop, "Id") == 0) return g_variant_new_string("uquick");
   if (g_strcmp0(prop, "Title") == 0) return g_variant_new_string("UQuick");
   if (g_strcmp0(prop, "Status") == 0) return g_variant_new_string("Active");
-  if (g_strcmp0(prop, "IconName") == 0) return g_variant_new_string("io.github.suveng.uquick");
+  /* 故意留空：ubuntu-appindicators 里 name 优先于 pixmap，而 snap 的图标不在
+   * 宿主机图标主题里，给名字只会查到 "image-missing"。留空才会回落到 IconPixmap。 */
+  if (g_strcmp0(prop, "IconName") == 0) return g_variant_new_string("");
   if (g_strcmp0(prop, "IconPixmap") == 0) return build_pixmaps();
   if (g_strcmp0(prop, "Menu") == 0) return g_variant_new_object_path(MENU_PATH);
   if (g_strcmp0(prop, "ItemIsMenu") == 0) return g_variant_new_boolean(TRUE);
@@ -442,6 +444,33 @@ static void on_sni_call(GDBusConnection *conn, const char *sender, const char *p
 }
 
 /* ---------- 注册 ---------- */
+
+/* 向 watcher 注册；GNOME Shell 重启/扩展重载后 watcher 会换一个，需要重新注册 */
+static void register_with_watcher(void) {
+  if (!bus) return;
+  GError *err = NULL;
+  GVariant *r = g_dbus_connection_call_sync(
+      bus, "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher",
+      "org.kde.StatusNotifierWatcher", "RegisterStatusNotifierItem",
+      g_variant_new("(s)", SNI_PATH), NULL, G_DBUS_CALL_FLAGS_NONE, 3000, NULL, &err);
+  if (r) g_variant_unref(r);
+  if (!r && err) {
+    if (g_getenv("UQUICK_TRACE"))
+      g_printerr("uquick: 注册托盘失败（没有 appindicator 扩展？）: %s\n", err->message);
+    g_clear_error(&err);
+  }
+}
+
+/* watcher 不在 -> 出现（扩展启用 / shell 重启）时补注册一次 */
+static void on_watcher_owner(GDBusConnection *c, const char *sender, const char *path,
+                             const char *iface, const char *signal, GVariant *params,
+                             gpointer data) {
+  (void)c; (void)sender; (void)path; (void)iface; (void)signal; (void)data;
+  const char *name = NULL, *old_owner = NULL, *new_owner = NULL;
+  g_variant_get(params, "(&s&s&s)", &name, &old_owner, &new_owner);
+  if (g_strcmp0(name, "org.kde.StatusNotifierWatcher") != 0) return;
+  if (new_owner && *new_owner) register_with_watcher();
+}
 
 gboolean uq_tray_init(GError **err) {
   bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, err);
@@ -471,16 +500,11 @@ gboolean uq_tray_init(GError **err) {
   if (r) g_variant_unref(r);
 
   /* 注册到 watcher；参数用对象路径（社区惯例，避免与 brute-force 扫描算出两个 id） */
-  r = g_dbus_connection_call_sync(
-      bus, "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher",
-      "org.kde.StatusNotifierWatcher", "RegisterStatusNotifierItem",
-      g_variant_new("(s)", SNI_PATH), NULL, G_DBUS_CALL_FLAGS_NONE, 3000, NULL, err);
-  if (r) g_variant_unref(r);
-  if (!r && err && *err) {
-    g_printerr("uquick: 注册托盘失败（可能没有 appindicator 扩展）: %s\n",
-               (*err)->message);
-    g_clear_error(err);
-  }
+  register_with_watcher();
+  g_dbus_connection_signal_subscribe(
+      bus, "org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged",
+      "/org/freedesktop/DBus", "org.kde.StatusNotifierWatcher",
+      G_DBUS_SIGNAL_FLAGS_NONE, on_watcher_owner, NULL, NULL);
   return TRUE;
 }
 
