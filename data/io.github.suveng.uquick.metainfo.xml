@@ -47,6 +47,13 @@
   </keywords>
 
   <releases>
+    <release version="0.1.1" date="2026-11-26">
+      <description>
+        <p>启动时预热一帧，开机后第一次按热键从 194 ms 降到 29 ms（稳定时 9~11 ms）。</p>
+        <p>改进模糊搜索排序：子序列只在应用名内匹配，关键词只认连续匹配，减少误命中。</p>
+        <p>新增 --selftest 回归自检与 --explain 排序诊断。</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-26">
       <description>
         <p>首个版本：应用搜索、计算器、网址/路径、shell 命令、系统动作、自定义命令。</p>

@@ -11,7 +11,7 @@
 #include <gtk/gtk.h>
 
 #define UQ_APP_ID    "io.github.suveng.uquick"
-#define UQ_VERSION   "0.1.0"
+#define UQ_VERSION   "0.1.1"
 #define UQ_MAX_ROWS  10
 #define UQ_MAX_TOKENS 6
 

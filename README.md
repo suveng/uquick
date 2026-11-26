@@ -4,7 +4,7 @@
 没有 Electron、没有 Python、没有 Node，也不打包运行时。
 
 ```
-名称        UQuick 0.1.0
+名称        UQuick 0.1.1
 语言        C（GTK4 / GLib / GIO）
 二进制      84 KB（strip 前；snap 包 32 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
@@ -43,8 +43,9 @@ sudo snap install --classic --edge uquick
 ./contrib/install-hotkey.sh -f
 ```
 
-> 快照名 `uquick` 已注册；`0.1.0` 已上传到 edge，正在等待 store 的 classic 权限人工审核。
-> 审核通过前可用 `sudo snap install --classic --dangerous uquick_0.1.0_amd64.snap` 本地安装。
+> 快照名 `uquick` 已注册；`0.1.1`（rev 3）已上传，正在等待 store 的 classic 权限人工审核
+> （`snapcraft revisions uquick` 可见 rev1/2/3，`snapcraft status` 在审核通过前显示 "no released revisions"）。
+> 审核通过前可用 `sudo snap install --classic --dangerous uquick_0.1.1_amd64.snap` 本地安装。
 
 ## 热键链路（为什么这么快）
 
@@ -168,8 +169,8 @@ classic 需要 store 团队人工审核（forum 的 `classic-confinement` 分类
 ## 打包与商店素材
 
 ```bash
-sudo snapcraft pack --destructive-mode        # -> uquick_0.1.0_amd64.snap（32 KB）
-snapcraft upload --release=edge uquick_0.1.0_amd64.snap
+sudo snapcraft pack --destructive-mode        # -> uquick_0.1.1_amd64.snap（32 KB）
+snapcraft upload --release=edge uquick_0.1.1_amd64.snap
 ./contrib/mkstore-shots.sh                    # 离屏生成 1920x1080 商店截图到 store/
 ```
 
