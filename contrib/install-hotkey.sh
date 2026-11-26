@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # install-hotkey.sh — 给 UQuick 装 GNOME 自定义热键（以及（可选）开机自启）
 #
-#   ./install-hotkey.sh                       # 默认组合 <Super>space
-#   ./install-hotkey.sh -b '<Alt>space'       # 指定组合
+#   ./install-hotkey.sh                       # 默认组合 <Super>slash
+#   ./install-hotkey.sh -b '<Ctrl><Alt>space' # 指定组合
+#   ./install-hotkey.sh -F -b '<Super>space'  # 已知会被 GNOME 抢走的组合，仍然强制写入
 #   ./install-hotkey.sh -n                    # 预演，只打印不写入
 #   ./install-hotkey.sh -r                    # 卸载热键与自启
 #
@@ -13,17 +14,21 @@
 #        -> unix socket -> 常驻进程 present 已有窗口（1 帧内上屏）
 set -euo pipefail
 
-BINDING="<Super>space"
+# 默认不要用 <Super>space / <Alt>space：实测前者被 GNOME 的输入源切换抢走、
+# 后者是窗口菜单键，都会导致"按了没反应"（用 uinput 注入真实按键验证过）。
+BINDING="<Super>slash"
 DRY=0
 REMOVE=0
 FAST=0
+FORCE=0
 SLOT="custom-uquick"
 
-while getopts ":b:nr:fh" o; do
+while getopts ":b:nr:fFh" o; do
   case "$o" in
     b) BINDING="$OPTARG" ;;
     n) DRY=1 ;;
     f) FAST=1 ;;
+    F) FORCE=1 ;;
     r) REMOVE=1 ;;
     h) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "未知参数：-$OPTARG（-h 看用法）" >&2; exit 2 ;;
@@ -80,19 +85,27 @@ if [ -z "$BIN" ]; then
 fi
 say "可执行文件：$BIN"
 
-# 冲突提示：该组合是否已被 GNOME 内置键盘绑定占用
-case "$BINDING" in
-  '<Alt>space')
-    v="$(gsettings get org.gnome.desktop.wm.keybindings activate-window-menu 2>/dev/null || true)"
-    [ "$v" = "['<Alt>space']" ] && {
-      say "注意：<Alt>space 同时是 GNOME 的窗口菜单键，可能双触发。"
-      say "      建议 -b '<Super>space'，或先 gsettings set org.gnome.desktop.wm.keybindings activate-window-menu \"[]\"" ; } ;;
-  '<Super>space')
-    v="$(gsettings get org.gnome.desktop.wm.keybindings switch-input-source 2>/dev/null || true)"
-    case "$v" in *"'<Super>space'"*)
-      say "注意：<Super>space 也是 GNOME 的输入源切换键（仅当配置了多种输入法时才冲突）。" ;;
-    esac ;;
-esac
+# 冲突检查：GNOME 自己的键位会抢在自定义快捷键前面（实测按了没反应）
+claim_check() {
+  local b="$1" key v
+  for key in activate-window-menu switch-input-source switch-input-source-backward \
+             toggle-overview panel-run-dialog; do
+    v="$(gsettings get org.gnome.desktop.wm.keybindings "$key" 2>/dev/null || true)"
+    case "$v" in *"'$b'"*) printf '%s=%s' "$key" "$v"; return 0 ;; esac
+  done
+  return 1
+}
+if claim=$(claim_check "$BINDING"); then
+  if [ "$FORCE" = 1 ]; then
+    say "警告：$BINDING 已被 GNOME 占用（$claim），强制写入后大概率按了没反应。"
+  else
+    say "错误：$BINDING 已被 GNOME 内置绑定占用：$claim"
+    say "      实测这种组合会被 GNOME 先吃掉（例：<Super>space 是输入源切换），"
+    say "      换一个组合，例如 -b '<Super>slash' / -b '<Ctrl><Alt>space'；"
+    say "      确实要强写就加 -F。"
+    exit 1
+  fi
+fi
 
 if printf '%s' "$list" | grep -qF "$KEY_PATH"; then
   say "槽位已存在：$KEY_PATH"

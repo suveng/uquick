@@ -9,6 +9,7 @@
 二进制      84 KB（strip 前；snap 包 32 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
 搜索        4.2 µs / 次（约 24 万次/秒）
+热键          <Super>slash
 热键→首帧    稳定 9~11 ms（约半帧），守护进程启动后首次 29 ms
 ```
 
@@ -33,7 +34,7 @@
 meson setup build --prefix=/usr
 ninja -C build
 sudo meson install -C build     # /usr/bin/uquick + .desktop + AppStream + 系统级自启
-./contrib/install-hotkey.sh -f  # 绑定 <Super>space（可 -b '<Alt>space'），写用户级自启
+./contrib/install-hotkey.sh -f  # 绑定 <Super>slash（-b 可改），写用户级自启
 ```
 
 ### B. snap（classic 权限，见下文「为什么是 classic」）
@@ -46,6 +47,24 @@ sudo snap install --classic --edge uquick
 > 快照名 `uquick` 已注册；`0.1.1`（rev 3）已上传，正在等待 store 的 classic 权限人工审核
 > （`snapcraft revisions uquick` 可见 rev1/2/3，`snapcraft status` 在审核通过前显示 "no released revisions"）。
 > 审核通过前可用 `sudo snap install --classic --dangerous uquick_0.1.1_amd64.snap` 本地安装。
+
+## 热键该选哪个组合
+
+默认 **`<Super>slash`**（Super+/）。**不要用 `<Super>space`**：它同时是 GNOME 的
+`switch-input-source`，mutter 的抓取会先吃掉按键——用 `/dev/uinput` 注入真实按键实测，
+`<Super>space` 完全不触发，`<Super>slash` 稳定触发。`<Alt>space` 同理被 `activate-window-menu` 占用。
+`install-hotkey.sh` 会自动检测这两个键位，撞车直接拒绝写入（确要强写加 `-F`）。
+
+验证热键是否真的通（不用手按）：
+
+```bash
+# 1) 先强制隐藏（toggle 是有状态的，不先归零会得出反向结论）
+printf hide | nc -U /run/user/1000/uquick.sock
+uquick --stats | grep 面板            # 期望：隐藏
+# 2) 注入一次 Super+/（需要 root，脚本自己 sudo）
+~/.pi/skills/gnome-wayland-desktop/scripts/inject-key.sh -k slash
+uquick --stats | grep 面板            # 期望：显示中
+```
 
 ## 热键链路（为什么这么快）
 

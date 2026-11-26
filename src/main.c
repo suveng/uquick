@@ -58,6 +58,19 @@ int uq_ipc_send(const char *msg) {
   return 0;
 }
 
+/* 读回守护进程的应答（用于 --stats 之类的状态查询） */
+static int ipc_query(const char *msg, char *out, size_t n) {
+  int fd = connect_daemon();
+  if (fd < 0) return -1;
+  if (write(fd, msg, strlen(msg)) < 0) { close(fd); return -1; }
+  ssize_t r = read(fd, out, n - 1);
+  close(fd);
+  if (r <= 0) return -1;
+  out[r] = 0;
+  g_strchomp(out);
+  return 0;
+}
+
 /* 守护进程不在就拉起它；输出全部丢弃，绝不继承调用者的管道 */
 static void spawn_daemon(void) {
   char exe[512];
@@ -114,8 +127,11 @@ static gboolean on_socket(gint fd, GIOCondition cond, gpointer data) {
     if (sp) { *sp = 0; arg = sp + 1; }
     guint64 ts = arg ? g_ascii_strtoull(arg, NULL, 10) : 0;
 
+    const char *reply = "ok";
     if (!cmd) {
       /* 忽略空消息 */
+    } else if (strcmp(cmd, "status") == 0) {
+      reply = uq_ui_is_visible() ? "visible" : "hidden";
     } else if (strcmp(cmd, "show") == 0) {
       uq_ui_set_pending(ts);
       uq_ui_show();
@@ -140,11 +156,15 @@ static gboolean on_socket(gint fd, GIOCondition cond, gpointer data) {
       if (uq_ui_is_visible()) uq_ui_show();
     } else if (strcmp(cmd, "quit") == 0) {
       uq_frec_flush();
-      if (write(c, "ok\n", 3) < 0) { /* 忽略 */ }
+      char buf2[8];
+      int n2 = g_snprintf(buf2, sizeof(buf2), "%s\n", reply);
+      if (write(c, buf2, (size_t)n2) < 0) { /* 忽略 */ }
       close(c);
       exit(0);
     }
-    if (write(c, "ok\n", 3) < 0) { /* 对端已关闭 */ }
+    char buf2[16];
+    int n2 = g_snprintf(buf2, sizeof(buf2), "%s\n", reply);
+    if (write(c, buf2, (size_t)n2) < 0) { /* 对端已关闭 */ }
   }
   close(c);
   return G_SOURCE_CONTINUE;
@@ -329,7 +349,12 @@ static int run_stats(void) {
   printf("扫描耗时    : %.2f ms\n", (double)uq_index_scan_us() / 1000.0);
   printf("socket      : %s\n", uq_socket_path());
   printf("守护进程    : %s\n", fd >= 0 ? "运行中" : "未运行");
-  if (fd >= 0) close(fd);
+  if (fd >= 0) {
+    close(fd);
+    char st[16];
+    if (ipc_query("status", st, sizeof(st)) == 0)
+      printf("面板        : %s\n", strcmp(st, "visible") == 0 ? "显示中" : "隐藏");
+  }
   printf("配置目录    : %s\n", g_get_user_config_dir());
   printf("状态目录    : %s\n", g_get_user_state_dir());
   printf("数据目录    : %s\n", g_get_user_data_dir());

@@ -280,9 +280,15 @@ static gboolean on_close(GtkWindow *w, gpointer data) {
 
 static void on_active_changed(GObject *obj, GParamSpec *ps, gpointer data) {
   (void)obj; (void)ps; (void)data;
+  if (getenv("UQUICK_TRACE"))
+    g_printerr("trace: is-active=%d ui_shown=%d visible=%d\n",
+               gtk_window_is_active(GTK_WINDOW(win)), ui_shown,
+               gtk_widget_get_visible(win));
   if (!ui_shown) return;
-  if (!gtk_window_is_active(GTK_WINDOW(win)))
+  if (!gtk_window_is_active(GTK_WINDOW(win))) {
+    if (getenv("UQUICK_TRACE")) g_printerr("trace: 失焦 -> 隐藏\n");
     uq_ui_hide();
+  }
 }
 
 static void on_entry_changed(GtkEditable *ed, gpointer data) {
