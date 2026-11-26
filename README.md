@@ -9,7 +9,7 @@
 二进制      84 KB（strip 前；snap 包 32 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
 搜索        4.2 µs / 次（约 24 万次/秒）
-热键          <Super>slash
+热键          <Super>space（本机；项目默认 <Super>slash，见下）
 热键→首帧    稳定 9~11 ms（约半帧），守护进程启动后首次 29 ms
 ```
 
@@ -35,6 +35,9 @@ meson setup build --prefix=/usr
 ninja -C build
 sudo meson install -C build     # /usr/bin/uquick + .desktop + AppStream + 系统级自启
 ./contrib/install-hotkey.sh -f  # 绑定 <Super>slash（-b 可改），写用户级自启
+# 想用 Super+Space：先腾空 GNOME 的输入源切换，再 -b 指定（否则按了没反应）
+#   gsettings set org.gnome.desktop.wm.keybindings switch-input-source "[]"
+#   ./contrib/install-hotkey.sh -f -b '<Super>space'
 ```
 
 ### B. snap（classic 权限，见下文「为什么是 classic」）
@@ -50,10 +53,23 @@ sudo snap install --classic --edge uquick
 
 ## 热键该选哪个组合
 
-默认 **`<Super>slash`**（Super+/）。**不要用 `<Super>space`**：它同时是 GNOME 的
-`switch-input-source`，mutter 的抓取会先吃掉按键——用 `/dev/uinput` 注入真实按键实测，
-`<Super>space` 完全不触发，`<Super>slash` 稳定触发。`<Alt>space` 同理被 `activate-window-menu` 占用。
-`install-hotkey.sh` 会自动检测这两个键位，撞车直接拒绝写入（确要强写加 `-F`）。
+默认 **`<Super>slash`**（Super+/），因为它不和 GNOME 任何内置键位冲突。
+**`<Super>space` 直接设是不行的**：它同时是 GNOME 的 `switch-input-source`，mutter 的抓取会
+先吃掉按键——用 `/dev/uinput` 注入真实按键实测，直接设 `<Super>space` 时完全不触发，
+`<Super>slash` 稳定触发。`<Alt>space` 同理被 `activate-window-menu` 占用。
+
+非要用 Super+Space，就先腾空 GNOME 的绑定（**会失去输入法/键盘布局切换快捷键**，
+单布局用户无感；原值是 `['<Super>space', 'XF86Keyboard']`），再指定组合：
+
+```bash
+gsettings set org.gnome.desktop.wm.keybindings switch-input-source "[]"
+./contrib/install-hotkey.sh -f -b '<Super>space'
+# 还原： gsettings set org.gnome.desktop.wm.keybindings switch-input-source \
+#          "['<Super>space', 'XF86Keyboard']"
+```
+
+`install-hotkey.sh` 会自动检测这两个键位，撞车直接拒绝写入（确要强写加 `-F`）——
+注意它只查 gsettings，不会替你把 GNOME 的绑定清掉。
 
 验证热键是否真的通（不用手按）：
 
