@@ -49,7 +49,7 @@ sudo meson install -C build     # /usr/bin/uquick + .desktop + AppStream + 系�
 # https://github.com/suveng/uquick/releases/latest
 curl -LO https://github.com/suveng/uquick/releases/download/v0.1.3/uquick_0.1.3_amd64.snap
 sha256sum uquick_0.1.3_amd64.snap     # 对照 Release 说明里的校验值
-sudo snap install --classic ./uquick_0.1.3_amd64.snap
+sudo snap install --classic --dangerous ./uquick_0.1.3_amd64.snap   # 无商店签名，必须 --dangerous
 ./contrib/install-hotkey.sh -f
 ```
 
