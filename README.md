@@ -43,7 +43,17 @@ sudo meson install -C build     # /usr/bin/uquick + .desktop + AppStream + 系�
 #   ./contrib/install-hotkey.sh -f -b '<Super>space'
 ```
 
-### B. snap（classic 权限，见下文「为什么是 classic」）
+### B. GitHub Release 里的 .snap（现在就能用，不等商店）
+
+```bash
+# https://github.com/suveng/uquick/releases/latest
+curl -LO https://github.com/suveng/uquick/releases/download/v0.1.3/uquick_0.1.3_amd64.snap
+sha256sum uquick_0.1.3_amd64.snap     # 对照 Release 说明里的校验值
+sudo snap install --classic ./uquick_0.1.3_amd64.snap
+./contrib/install-hotkey.sh -f
+```
+
+### C. snap 商店（classic 权限，见下文「为什么是 classic」）
 
 ```bash
 sudo snap install --classic --edge uquick
