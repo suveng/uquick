@@ -1,0 +1,53 @@
+name: uquick
+adopt-info: uquick
+base: core26
+summary: Ubuntu 原生极速启动器
+description: |
+  **UQuick** 是用 C + GTK4 编写的 Ubuntu 原生启动器，用来替代 uTools 这类
+  Electron 工具：单个二进制、无解释器、无 Web 运行时。
+
+  按一下热键即可呼出搜索框，毫秒级完成：
+
+  - **启动应用**：模糊搜索全部已安装的 .desktop 程序，按使用频率与时间热度排序
+  - **算数**：输入 `1+2*3`、`sqrt(16)`、`15%` 直接出结果，回车复制
+  - **打开网址/路径**：输入 `https://…`、`www.…`、`/home/…`、`~/Downloads`
+  - **执行命令**：`>ls -la` 交给 shell
+  - **系统动作**：锁屏、挂起、注销、重启、关机、Wi-Fi/蓝牙/显示/声音设置
+  - **自定义命令**：`~/.config/uquick/commands.tsv`（名称<TAB>命令）
+
+  性能（本机实测，索引 98 项 / Ubuntu 26.04）：
+
+  - 单次搜索 **≈4 µs**（20 万次/秒）
+  - 热键到界面出现 **≈1 帧**（60 Hz 下约 15 ms），请求到提交合成器 <1 ms
+  - 首次冷启动（含索引扫描 + 建窗口）约 190 ms，之后由常驻进程接管
+
+  **为什么是 classic 权限**：启动器的职责就是执行宿主机上的任意 .desktop
+  程序与用户自定义命令。strict 沙箱里看不到宿主机的 `/usr/share/applications`
+  也 exec 不了宿主二进制（实测 base 快照的 /usr 只有 468 个文件），功能无法成立。
+  本 snap 不含任何运行时依赖，只调宿主机已装的 GUI 库。
+grade: stable
+confinement: classic
+license: GPL-3.0-or-later
+website: https://github.com/suveng/uquick
+contact: https://github.com/suveng/uquick/issues
+
+apps:
+  uquick:
+    command: usr/bin/uquick
+    desktop: usr/share/applications/io.github.suveng.uquick.desktop
+    # classic 快照不允许声明 plugs/slots（store 会直接拒绝上传）
+
+parts:
+  uquick:
+    plugin: meson
+    source: .
+    parse-info: [usr/share/metainfo/io.github.suveng.uquick.metainfo.xml]
+    meson-parameters:
+      - --prefix=/usr
+    build-packages:
+      - libgtk-4-dev
+      - ninja-build
+    override-build: |
+      craftctl default
+      # 不打包 autostart（classic 的 /etc 不落到宿主机），由 install-hotkey.sh 写用户级自启
+      rm -f "$CRAFT_PART_INSTALL/etc/xdg/autostart/uquick-daemon.desktop"

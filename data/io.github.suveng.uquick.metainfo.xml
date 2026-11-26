@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.suveng.uquick</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>UQuick</name>
+  <summary>Ubuntu 原生极速启动器</summary>
+  <summary xml:lang="en">A blazing fast native launcher for Ubuntu</summary>
+
+  <description>
+    <p>
+      UQuick 是一个用 C 与 GTK4 编写的 Ubuntu 原生启动器，替代 uTools 一类的
+      Electron 工具。常驻进程预热索引与窗口，按下热键即可在毫秒级完成搜索与启动。
+    </p>
+    <p>
+      功能：
+    </p>
+    <ul>
+      <li>模糊搜索并启动所有已安装应用（.desktop），按使用频率与时间热度排序</li>
+      <li>输入算式立即得到结果，回车复制到剪贴板</li>
+      <li>输入网址直接打开，输入路径在文件管理器中打开</li>
+      <li>以 &gt; 前缀在 shell 中执行命令</li>
+      <li>自定义命令：~/.config/uquick/commands.tsv</li>
+      <li>内置锁屏、挂起、注销、重启、关机与常用系统设置入口</li>
+      <li>全局热键唤出（通过 GNOME 自定义快捷键，毫秒级响应）</li>
+    </ul>
+    <p>
+      性能：单个二进制、无 Electron、无 Python 运行时；索引约 2k 项时单次搜索
+      数十微秒，热键到界面出现约 30 毫秒（预热后为毫秒级）。
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.suveng.uquick.desktop</launchable>
+  <provides>
+    <binary>uquick</binary>
+  </provides>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <keywords>
+    <keyword>launcher</keyword>
+    <keyword>search</keyword>
+    <keyword>spotlight</keyword>
+    <keyword>启动器</keyword>
+    <keyword>搜索</keyword>
+  </keywords>
+
+  <releases>
+    <release version="0.1.0" date="2026-11-26">
+      <description>
+        <p>首个版本：应用搜索、计算器、网址/路径、shell 命令、系统动作、自定义命令。</p>
+      </description>
+    </release>
+  </releases>
+
+  <developer id="io.github.suveng">
+    <name>suveng</name>
+  </developer>
+
+  <url type="homepage">https://github.com/suveng/uquick</url>
+  <url type="bugtracker">https://github.com/suveng/uquick/issues</url>
+  <url type="vcs-browser">https://github.com/suveng/uquick</url>
+</component>

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=UQuick
+GenericName=Launcher
+GenericName[zh_CN]=启动器
+Comment=极速启动器：搜索应用、计算、打开网址与路径
+Comment[en]=Blazing fast launcher: apps, math, URIs and paths
+Exec=@bindir@/uquick --toggle
+Icon=io.github.suveng.uquick
+Terminal=false
+Categories=Utility;
+Keywords=launcher;search;run;launch;启动器;搜索;工具;
+StartupNotify=false

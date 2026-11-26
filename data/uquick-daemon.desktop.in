@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=UQuick Daemon
+Comment=保持 UQuick 常驻，热键唤出零延迟
+Exec=@bindir@/uquick --daemon
+Icon=io.github.suveng.uquick
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

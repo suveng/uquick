@@ -1,0 +1,9 @@
+build/
+builddbg/
+*.snap
+store/.*
+prime/
+stage/
+parts/
+overlay/
+snap/.snapcraft/
