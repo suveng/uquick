@@ -4,7 +4,7 @@
 没有 Electron、没有 Python、没有 Node，也不打包运行时。
 
 ```
-名称        UQuick 0.1.3
+名称        UQuick 0.1.4
 语言        C（GTK4 / GLib / GIO）
 二进制      150 KB（含 21k 汉字拼音表；snap 包 60 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
@@ -47,9 +47,9 @@ sudo meson install -C build     # /usr/bin/uquick + .desktop + AppStream + 系�
 
 ```bash
 # https://github.com/suveng/uquick/releases/latest
-curl -LO https://github.com/suveng/uquick/releases/download/v0.1.3/uquick_0.1.3_amd64.snap
-sha256sum uquick_0.1.3_amd64.snap     # 对照 Release 说明里的校验值
-sudo snap install --classic --dangerous ./uquick_0.1.3_amd64.snap   # 无商店签名，必须 --dangerous
+curl -LO https://github.com/suveng/uquick/releases/download/v0.1.4/uquick_0.1.4_amd64.snap
+sha256sum uquick_0.1.4_amd64.snap     # 4f4bd54ae51a65de3d1b4e2ed94f0ef0358f39b6a72e2cd176d963bd54fc4f2c
+sudo snap install --classic --dangerous ./uquick_0.1.4_amd64.snap   # 无商店签名，必须 --dangerous
 ./contrib/install-hotkey.sh -f
 ```
 
