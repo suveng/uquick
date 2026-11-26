@@ -419,9 +419,28 @@ static GVariant *on_sni_prop(GDBusConnection *c, const char *sender, const char 
   /* 图标名：必须能在宿主机的图标主题里查到 —— install-hotkey.sh 会把
    * io.github.suveng.uquick.svg 装到 ~/.local/share/icons/hicolor/scalable/apps/。
    * ubuntu-appindicators 是 name 优先、pixmap 兜底，名字查不到就显示成缺失占位符。 */
-  if (g_strcmp0(prop, "IconName") == 0) return g_variant_new_string("io.github.suveng.uquick");
-  if (g_strcmp0(prop, "IconPixmap") == 0) return build_pixmaps();
-  if (g_strcmp0(prop, "Menu") == 0) return g_variant_new_object_path(MENU_PATH);
+  if (g_strcmp0(prop, "IconName") == 0) {
+    /* 排障开关：UQUICK_TRAY_DEBUG=1 时换成系统里一定存在的图标，用来区分
+     * "面板没显示条目" 和 "我们的图标自己画不出来" */
+    const char *ov = g_getenv("UQUICK_TRAY_ICON");
+    if (ov) return g_variant_new_string(ov);
+    if (g_getenv("UQUICK_TRAY_DEBUG"))
+      return g_variant_new_string("dialog-warning-symbolic");
+    return g_variant_new_string("io.github.suveng.uquick");
+  }
+  if (g_strcmp0(prop, "IconPixmap") == 0) {
+    if (g_getenv("UQUICK_TRAY_NOPIXMAP")) {
+      GVariantBuilder b;
+      g_variant_builder_init(&b, G_VARIANT_TYPE("a(iiay)"));
+      return g_variant_builder_end(&b);
+    }
+    return build_pixmaps();
+  }
+  if (g_strcmp0(prop, "Menu") == 0) {
+    if (g_getenv("UQUICK_TRAY_NOMENU") || g_getenv("UQUICK_TRAY_DEBUG"))
+      return g_variant_new_object_path("/NO_DBUSMENU");
+    return g_variant_new_object_path(MENU_PATH);
+  }
   if (g_strcmp0(prop, "ItemIsMenu") == 0) return g_variant_new_boolean(TRUE);
   if (g_strcmp0(prop, "ToolTip") == 0) {
     GVariantBuilder pix;
