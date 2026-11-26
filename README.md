@@ -203,6 +203,9 @@ $ uquick --selftest
 - `src/tray.c` —— 顶栏托盘：手写 **StatusNotifierItem + com.canonical.dbusmenu**（不用
   libayatana-appindicator，那是 GTK3 库，和 GTK4 进程不能混用）。图标用 **IconPixmap**
   （cairo 现画 ARGB32）而不是 IconName —— classic snap 的图标不在宿主机图标主题里，按名字查不到。
+  图标与 `data/icons/.../io.github.suveng.uquick.svg` 同一套几何：蓝底渐变 + 顶部径向高光
+  + 底部压暗 + 白色闪电；**≤24 px 自动切简化版**（去高光/暗角/投影、描边加粗），否则小图标会糊。
+  `uquick --icon-png FILE [SIZE]` 可导出任意尺寸 PNG（商店图标就用它出的 `store/icon-512.png`）。
 - `src/settings.c` —— 设置窗口（纯 GTK4 代码构建，无 libadwaita）
 - `src/autostart.c` —— 开机自启开关（XDG autostart；有系统级条目时用同名 `Hidden=true` 屏蔽）
 - `src/launch.c` —— GDesktopAppInfo 启动（含 Terminal=true、启动通知上下文）+ 失败回落、剪贴板、URI/路径

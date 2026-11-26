@@ -83,35 +83,95 @@ static const char menu_xml[] =
   " </interface>"
   "</node>";
 
-/* ---------- 图标：cairo 画一张 ARGB32 pixmap ---------- */
+/* ---------- 图标：与 SVG 同款，cairo 现画 ----------
+ * 128×128 坐标系，调用方自己 cairo_scale；<=24px 时走简化版（去掉高光/暗角/投影，
+ * 加粗描边），否则小图标会糊成一团。 */
 
-static void draw_icon(cairo_t *cr, double size) {
-  double s = size / 128.0;
-  /* 圆角底 + 竖向渐变 */
-  double r = 26 * s;
+static void rounded_rect_path(cairo_t *cr, double x, double y, double w, double h, double r) {
+  double x2 = x + w, y2 = y + h;
   cairo_new_sub_path(cr);
-  cairo_arc(cr, 6 * s + r, 6 * s + r, r, M_PI, 1.5 * M_PI);
-  cairo_arc(cr, 118 * s - r, 6 * s + r, r, 1.5 * M_PI, 0);
-  cairo_arc(cr, 118 * s - r, 118 * s - r, r, 0, 0.5 * M_PI);
-  cairo_arc(cr, 6 * s + r, 118 * s - r, r, 0.5 * M_PI, M_PI);
+  cairo_arc(cr, x2 - r, y + r, r, -M_PI_2, 0);
+  cairo_arc(cr, x2 - r, y2 - r, r, 0, M_PI_2);
+  cairo_arc(cr, x + r, y2 - r, r, M_PI_2, M_PI);
+  cairo_arc(cr, x + r, y + r, r, M_PI, 1.5 * M_PI);
   cairo_close_path(cr);
-  cairo_pattern_t *g = cairo_pattern_create_linear(0, 0, 0, size);
-  cairo_pattern_add_color_stop_rgb(g, 0.0, 0.23, 0.51, 0.96);
-  cairo_pattern_add_color_stop_rgb(g, 1.0, 0.11, 0.31, 0.85);
-  cairo_set_source(cr, g);
-  cairo_fill(cr);
-  cairo_pattern_destroy(g);
+}
 
-  /* 闪电 */
-  cairo_move_to(cr, 72 * s, 18 * s);
-  cairo_line_to(cr, 40 * s, 70 * s);
-  cairo_line_to(cr, 58 * s, 70 * s);
-  cairo_line_to(cr, 48 * s, 110 * s);
-  cairo_line_to(cr, 82 * s, 56 * s);
-  cairo_line_to(cr, 62 * s, 56 * s);
+static void bolt_path(cairo_t *cr) {
+  cairo_move_to(cr, 76, 16);
+  cairo_line_to(cr, 44, 69);
+  cairo_line_to(cr, 62, 69);
+  cairo_line_to(cr, 52, 112);
+  cairo_line_to(cr, 88, 54);
+  cairo_line_to(cr, 68, 54);
   cairo_close_path(cr);
-  cairo_set_source_rgb(cr, 1, 1, 1);
+}
+
+static void draw_icon(cairo_t *cr, gboolean small) {
+  /* 底色：左上 -> 右下三段渐变 */
+  cairo_pattern_t *bg = cairo_pattern_create_linear(10, 4, 115, 124);
+  cairo_pattern_add_color_stop_rgb(bg, 0.00, 0.357, 0.608, 1.000);   /* #5B9BFF */
+  cairo_pattern_add_color_stop_rgb(bg, 0.48, 0.180, 0.416, 0.910);   /* #2E6AE8 */
+  cairo_pattern_add_color_stop_rgb(bg, 1.00, 0.086, 0.208, 0.624);   /* #16359F */
+  rounded_rect_path(cr, 4, 4, 120, 120, 31);
+  cairo_set_source(cr, bg);
   cairo_fill(cr);
+  cairo_pattern_destroy(bg);
+
+  if (!small) {
+    /* 顶部径向高光 */
+    cairo_pattern_t *hl = cairo_pattern_create_radial(41, 2.4, 0, 41, 2.4, 102);
+    cairo_pattern_add_color_stop_rgba(hl, 0.00, 1, 1, 1, 0.30);
+    cairo_pattern_add_color_stop_rgba(hl, 0.55, 1, 1, 1, 0.05);
+    cairo_pattern_add_color_stop_rgba(hl, 1.00, 1, 1, 1, 0.00);
+    rounded_rect_path(cr, 4, 4, 120, 120, 31);
+    cairo_set_source(cr, hl);
+    cairo_fill(cr);
+    cairo_pattern_destroy(hl);
+
+    /* 底部压暗，增加体积感 */
+    cairo_pattern_t *vig = cairo_pattern_create_linear(0, 79, 0, 124);
+    cairo_pattern_add_color_stop_rgba(vig, 0.0, 0, 0, 0, 0.00);
+    cairo_pattern_add_color_stop_rgba(vig, 1.0, 0, 0, 0, 0.15);
+    rounded_rect_path(cr, 4, 4, 120, 120, 31);
+    cairo_set_source(cr, vig);
+    cairo_fill(cr);
+    cairo_pattern_destroy(vig);
+  }
+
+  /* 闪电：先画一层柔化投影（细描边叠加模拟模糊），再画实体 */
+  if (!small) {
+    cairo_save(cr);
+    cairo_translate(cr, 0, 2);
+    cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+    for (int i = 0; i < 3; i++) {
+      cairo_set_line_width(cr, 3 + i * 3.5);
+      cairo_set_source_rgba(cr, 0.031, 0.098, 0.290, 0.16 - i * 0.045);
+      bolt_path(cr);
+      cairo_fill_preserve(cr);
+      cairo_stroke(cr);
+    }
+    cairo_restore(cr);
+  }
+
+  cairo_pattern_t *b = cairo_pattern_create_linear(50, 16, 84, 112);
+  cairo_pattern_add_color_stop_rgb(b, 0.0, 1.000, 1.000, 1.000);     /* #FFFFFF */
+  cairo_pattern_add_color_stop_rgb(b, 1.0, 0.894, 0.937, 1.000);     /* #E4EFFF */
+  cairo_set_source(cr, b);
+  cairo_set_line_width(cr, small ? 4.5 : 3.0);
+  cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+  bolt_path(cr);
+  cairo_fill_preserve(cr);
+  cairo_stroke(cr);
+  cairo_pattern_destroy(b);
+
+  /* 内描边 */
+  if (!small) {
+    cairo_set_line_width(cr, 1.2);
+    cairo_set_source_rgba(cr, 1, 1, 1, 0.18);
+    rounded_rect_path(cr, 5.4, 5.4, 117.2, 117.2, 29.6);
+    cairo_stroke(cr);
+  }
 }
 
 /* 把托盘图标导出成 PNG（调试/商店素材用） */
@@ -119,7 +179,7 @@ gboolean uq_tray_write_icon_png(const char *path, int size) {
   cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
   cairo_t *cr = cairo_create(surf);
   cairo_scale(cr, (double)size / 128.0, (double)size / 128.0);
-  draw_icon(cr, 128.0);
+  draw_icon(cr, size <= 24);
   cairo_destroy(cr);
   cairo_status_t st = cairo_surface_write_to_png(surf, path);
   cairo_surface_destroy(surf);
@@ -136,7 +196,7 @@ static GVariant *build_pixmaps(void) {
     cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
     cairo_t *cr = cairo_create(surf);
     cairo_scale(cr, (double)w / 128.0, (double)h / 128.0);
-    draw_icon(cr, 128.0);
+    draw_icon(cr, w <= 24);
     cairo_destroy(cr);
     cairo_surface_flush(surf);
 

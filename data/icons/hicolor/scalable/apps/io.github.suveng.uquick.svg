@@ -1,11 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3b82f6"/>
-      <stop offset="1" stop-color="#1d4ed8"/>
+    <linearGradient id="bg" x1="0.08" y1="0" x2="0.9" y2="1">
+      <stop offset="0"    stop-color="#5B9BFF"/>
+      <stop offset="0.48" stop-color="#2E6AE8"/>
+      <stop offset="1"    stop-color="#16359F"/>
     </linearGradient>
+    <radialGradient id="hl" cx="0.32" cy="0.02" r="0.85">
+      <stop offset="0"    stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1"    stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000000" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0.2" y1="0" x2="0.75" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#E4EFFF"/>
+    </linearGradient>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.7"
+                    flood-color="#08194a" flood-opacity="0.40"/>
+    </filter>
   </defs>
-  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bg)"/>
-  <path d="M72 18 L40 70 h18 l-10 40 34-54 H62 z" fill="#ffffff"/>
+
+  <rect x="4" y="4" width="120" height="120" rx="31" fill="url(#bg)"/>
+  <rect x="4" y="4" width="120" height="120" rx="31" fill="url(#hl)"/>
+  <rect x="4" y="4" width="120" height="120" rx="31" fill="url(#vig)"/>
+
+  <path d="M76 16 L44 69 H62 L52 112 L88 54 H68 Z"
+        fill="url(#bolt)" stroke="url(#bolt)" stroke-width="3"
+        stroke-linejoin="round" filter="url(#sh)"/>
+
+  <rect x="5.4" y="5.4" width="117.2" height="117.2" rx="29.6"
+        fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.2"/>
 </svg>
