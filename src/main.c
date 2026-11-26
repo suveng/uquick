@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <locale.h>
+#include <math.h>
 #include <glib-unix.h>
 #include <signal.h>
 #include <stdio.h>
@@ -202,6 +203,7 @@ static int run_daemon(void) {
 
   gtk_init();
   uq_ui_init();
+  uq_ui_warmup();
 
   signal(SIGTERM, on_signal);
   signal(SIGINT, on_signal);
@@ -260,6 +262,65 @@ static int run_explain(const char *q) {
   return 0;
 }
 
+/* 回归自检：计算器 + 匹配打分 + 索引/搜索；
+ * 不依赖具体装了哪些应用，可在任何 Ubuntu 上跑 */
+static int run_selftest(void) {
+  int fail = 0;
+  static const struct { const char *e; double want; } pos[] = {
+    { "1+1", 2.0 }, { "(1+2)*3", 9.0 }, { "2^10", 1024.0 }, { "2^3^2", 512.0 },
+    { "sqrt(16)", 4.0 }, { "-3*2", -6.0 }, { "10%3", 1.0 }, { "1_000+1", 1001.0 },
+    { "floor(2.9)", 2.0 }, { "1/3", 1.0 / 3.0 }, { "2*pi/2", M_PI }, { "abs(-7)", 7.0 },
+    { "1e3+1", 1001.0 }, { " 4 * ( 2 + 1 ) ", 12.0 },
+  };
+  for (gsize i = 0; i < G_N_ELEMENTS(pos); i++) {
+    double got = 0;
+    if (!uq_calc_eval(pos[i].e, &got) || fabs(got - pos[i].want) > 1e-9) {
+      g_printerr("FAIL calc  %-18s -> %s (%.17g, 期望 %.17g)\n", pos[i].e,
+                 uq_calc_eval(pos[i].e, &got) ? "ok" : "err", got, pos[i].want);
+      fail++;
+    }
+  }
+  static const char *neg[] = { "1/0", "1+", "abc(1)", "", "5%0", "(1" };
+  for (gsize i = 0; i < G_N_ELEMENTS(neg); i++) {
+    double got = 0;
+    if (uq_calc_eval(neg[i], &got)) {
+      g_printerr("FAIL calc  %-18s 不该求值成功（得到 %.17g）\n", neg[i], got);
+      fail++;
+    }
+  }
+
+  /* 打分：前缀 > 词边界 > 子序列；且子序列不能靠关键词段"凑"出来 */
+  double a = uq_fuzzy("firefox web", "fire");
+  double b = uq_fuzzy("solidfire", "fire");
+  double c = uq_fuzzy("firmware updater", "fire");
+  if (!(a > b && b > c && c > 0)) {
+    g_printerr("FAIL fuzzy fire: prefix=%.1f boundary=%.1f subseq=%.1f\n", a, b, c);
+    fail++;
+  }
+
+  uq_frec_load();
+  uq_index_load();
+  if (uq_index_count() < 10) {
+    g_printerr("FAIL index: 只索引到 %u 项\n", uq_index_count());
+    fail++;
+  }
+  UqResult r[4];
+  int n = uq_search("set", r, 4, NULL, 0);
+  if (n <= 0) { g_printerr("FAIL search: \"set\" 无命中\n"); fail++; }
+  if (uq_search("zzzzqqqq", r, 4, NULL, 0) != 0) {
+    g_printerr("FAIL search: 乱串不该有命中\n"); fail++;
+  }
+
+  if (fail) {
+    printf("自检失败：%d 项\n", fail);
+    return 1;
+  }
+  printf("自检通过：计算器 %zu 正例 + %zu 反例，打分/索引/搜索正常（索引 %u 项，扫描 %.2f ms）\n",
+         G_N_ELEMENTS(pos), G_N_ELEMENTS(neg), uq_index_count(),
+         (double)uq_index_scan_us() / 1000.0);
+  return 0;
+}
+
 static int run_stats(void) {
   uq_frec_load();
   uq_index_load();
@@ -289,6 +350,7 @@ static void usage(void) {
   printf("  uquick --bench         索引 + 搜索基准\n");
   printf("  uquick --bench-show    热键到首帧延迟基准（需要显示环境）\n");
   printf("  uquick --stats         运行状态\n");
+  printf("  uquick --selftest      计算器/打分/索引回归自检\n");
 }
 
 int main(int argc, char **argv) {
@@ -316,6 +378,7 @@ int main(int argc, char **argv) {
     if (!strcmp(a, "--quit"))                        return client_command("quit", FALSE);
     if (!strcmp(a, "--bench"))                       return run_bench();
     if (!strcmp(a, "--explain") && argc > 2)         return run_explain(argv[2]);
+    if (!strcmp(a, "--selftest"))                    return run_selftest();
     if (!strcmp(a, "--stats"))                       return run_stats();
     if (!strcmp(a, "--version") || !strcmp(a, "-v")) { printf("uquick %s\n", UQ_VERSION); return 0; }
     if (!strcmp(a, "--help") || !strcmp(a, "-h"))    { usage(); return 0; }

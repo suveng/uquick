@@ -83,6 +83,7 @@ gboolean uq_ui_is_visible(void);
 void    uq_ui_run(void);
 void    uq_ui_set_pending(guint64 unix_us);   /* 延迟测量用 */
 void    uq_ui_set_query(const char *text);     /* 预置查询（脚本/截图） */
+void    uq_ui_warmup(void);                    /* 启动即预热首帧，避免首次热键慢 190 ms */
 void    uq_ui_bench(void);                    /* 打开 -> 首帧，打印耗时 */
 
 /* ---- main.c: IPC ---- */

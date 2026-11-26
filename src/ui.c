@@ -430,6 +430,22 @@ void uq_ui_set_query(const char *text) {
   render();
 }
 
+/* 守护进程起来后先空跑一次「映射→首帧→隐藏」，把 GTK 渲染管线与
+ * 首块 buffer 的分配成本挪到登录时；用 set_visible 而不是 present，
+ * 这样不会向合成器申请激活、不抢焦点。 */
+static gboolean warmup_done(gpointer data) {
+  (void)data;
+  gtk_widget_set_visible(win, FALSE);
+  gtk_widget_set_opacity(win, 1.0);
+  return G_SOURCE_REMOVE;
+}
+
+void uq_ui_warmup(void) {
+  gtk_widget_set_opacity(win, 0.0);
+  gtk_widget_set_visible(win, TRUE);
+  g_timeout_add(120, warmup_done, NULL);
+}
+
 void uq_ui_hide(void) {
   ui_shown = FALSE;
   gtk_widget_set_visible(win, FALSE);

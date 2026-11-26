@@ -9,7 +9,7 @@
 二进制      84 KB（strip 前；snap 包 32 KB）
 索引        全部 .desktop 应用 + 内置动作 + 自定义命令
 搜索        4.2 µs / 次（约 24 万次/秒）
-热键→首帧    ≈ 1 帧（60 Hz 下 15 ms；快路径客户端 10 ms）
+热键→首帧    稳定 9~11 ms（约半帧），守护进程启动后首次 29 ms
 ```
 
 ## 功能
@@ -59,7 +59,11 @@ Wayland 下应用不能自己抓全局按键（GNOME 49+ 的 mutter 只在 X11 �
 ```
 
 关键点：**窗口、列表行、图标缓存都在守护进程里预先建好**，热键路径只剩「改文字 + present」，
-所以没有冷启动的建窗口开销。首次冷启动（守护进程不在）约 190 ms，之后都是 1 帧。
+所以没有冷启动的建窗口开销。首次冷启动（守护进程不在）约 190 ms。
+
+守护进程启动时还会做一次**预热**：`set_visible(TRUE)`（不是 `present`，不抢焦点）+ 不透明度 0
+跑一帧再隐藏，把 GTK 渲染管线/首块 buffer 的分配成本挪到登录时。没有这一步，开机后第一次按热键
+要 194 ms；加了之后首次 29 ms，稳定 9~11 ms。
 
 `contrib/install-hotkey.sh -f` 用的是快路径客户端：
 
@@ -84,6 +88,7 @@ uquick --quit
 uquick --bench         # 索引 + 搜索基准
 uquick --bench-show    # 热键到首帧延迟基准（需要显示环境）
 uquick --stats         # 索引项数、扫描耗时、socket、守护进程状态
+uquick --selftest      # 计算器 20 例 + 打分/索引/搜索回归自检（无外部依赖）
 uquick --explain TEXT  # 打印带分数的命中列表（调排序用）
 ```
 
@@ -112,14 +117,21 @@ $ uquick --bench
 索引：98 项，扫描耗时 2.88 ms
 搜索：20000 次 / 83.5 ms，平均 4.18 µs/次（24.0 万次/秒），命中均值 8.4
 
-$ uquick --bench-show
-请求 -> surface 提交 : avg=7.79 ms  min=0.05  max=154.72
-请求 -> 首帧上屏     : avg=26.69 ms  min=14.71  max=182.71
+$ uquick --bench-show      # 同一进程内 20 次 show/hide 往返
+请求 -> surface 提交 : avg=6.89 ms  min=0.05  max=136.62
+请求 -> 首帧上屏     : avg=26.59 ms  min=14.14  max=170.53
+
+# 真实热键链路（snap 版 + nc 快路径客户端，UQUICK_TRACE=1 记录）
+首次 28.9 ms -> 11.0 -> 10.9 -> 9.2 -> 8.8 ms        （平均 13.7 ms）
+
+$ uquick --selftest
+自检通过：计算器 14 正例 + 6 反例，打分/索引/搜索正常（索引 99 项，扫描 2.89 ms）
 ```
 
 - **4 µs/次** 来自「预折叠 haystack + 无分配打分 + 定长结果数组插入」；
 - 上屏时间基本等于 1 帧（min 14.7 ms ≈ 60 Hz 的 16.7 ms），说明瓶颈在合成器 vblank，不在我们；
-- 冷启动（`pkill uquick; time uquick --show`）：客户端 190 ms 拿到 socket，首帧 210 ms。
+- 冷启动（`pkill uquick; time uquick --show`）：客户端 190 ms 拿到 socket，首帧 210 ms；
+  常驻后首次热键 29 ms、稳定 9~11 ms（`--bench-show` 的 avg 26 ms 是 20 次连续 show/hide 抖动上界）。
 
 复测：`./build/uquick --bench`、`./build/uquick --bench-show`、`UQUICK_TRACE=1 ./build/uquick --daemon`
 后按热键，`~/.local/state/uquick/latency.log` 里是每帧延迟（微秒）。
